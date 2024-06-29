@@ -90,6 +90,7 @@ main :: proc() {
         if rl.IsKeyPressed(.SPACE) {
             if boost_timer < 0 {
                 boost_timer = boost_time  
+                rl.PlaySound(sfx_lose)
             }
         }
 
@@ -169,7 +170,7 @@ main :: proc() {
         rl.BeginDrawing()
 
         if boost_timer > 0 {
-            rl.DrawRectangleRec(paddle, {u8(255 * ((boost_timer - boost_time) / boost_timer)), 255, 255, 255})
+            rl.DrawRectangleRec(paddle, {u8(255 * ((boost_time - boost_timer) / boost_time)), 255, 255, 255})
         } else {
             rl.DrawRectangleRec(paddle, rl.WHITE)
         }
