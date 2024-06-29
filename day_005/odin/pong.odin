@@ -19,6 +19,8 @@ Game_State :: struct {
     ball_speed:          f32, 
     score_player:        int,
     score_cpu:           int,
+    boost_timer:         f32,
+    boost_time:          f32,
 }
 
 reset :: proc(using gs: ^Game_State) {
@@ -58,6 +60,7 @@ main :: proc() {
         paddle_speed = 10,
         ball = {width = 30, height = 30},
         ball_speed = 10,
+        boost_time = 1.0
     }
     reset(&gs)
 
@@ -74,6 +77,9 @@ main :: proc() {
     sfx_lose := rl.LoadSound("lose.wav")
 
     for !rl.WindowShouldClose() {
+        delta := rl.GetFrameTime()
+
+        boost_timer -= delta
 
         if rl.IsKeyDown(.UP) {
             paddle.y -= paddle_speed
@@ -81,12 +87,17 @@ main :: proc() {
         if rl.IsKeyDown(.DOWN) {
             paddle.y += paddle_speed
         }
+        if rl.IsKeyPressed(.SPACE) {
+            if boost_timer < 0 {
+                boost_timer = boost_time  
+            }
+        }
 
         paddle.y = linalg.clamp(paddle.y, 0, window_size.y - paddle.height)
 
         // AI movement
         // increase timer by time between last frame and this one
-        ai_reaction_timer += rl.GetFrameTime()
+        ai_reaction_timer += delta
         // if the timer is done
         if ai_reaction_timer >= ai_reaction_delay {
             // reset the timer
@@ -132,9 +143,17 @@ main :: proc() {
 
         if next_ball_rect.y >= window_size.y - ball.height || next_ball_rect.y <= 0 {
             ball_dir.y *= -1
+            rl.PlaySound(sfx_hit)
         }
 
         if new_dir, ok := ball_dir_calculate(next_ball_rect, paddle); ok {
+            // if the button was pressed in the last boost_time seconds
+            if boost_timer > 0 {
+                // boost_timer / boost_time will give us a percentage (let's say 30%)
+                // we add 1 because we want to increase the speed (130%)
+                d := 1 + boost_timer / boost_time
+                new_dir *= d
+            }
             ball_dir = new_dir
             rl.PlaySound(sfx_hit)
         } else if new_dir, ok := ball_dir_calculate(next_ball_rect, ai_paddle); ok {
@@ -149,9 +168,13 @@ main :: proc() {
 
         rl.BeginDrawing()
 
-        rl.DrawRectangleRec(paddle, rl.WHITE)
+        if boost_timer > 0 {
+            rl.DrawRectangleRec(paddle, {u8(255 * ((boost_timer - boost_time) / boost_timer)), 255, 255, 255})
+        } else {
+            rl.DrawRectangleRec(paddle, rl.WHITE)
+        }
         rl.DrawRectangleRec(ai_paddle, rl.WHITE)
-        rl.DrawRectangleRec(ball, rl.RED)
+        rl.DrawRectangleRec(ball, {255, u8(255 - 255 / linalg.length(ball_dir)), 0, 255})
 
         rl.DrawText(fmt.ctprintf("{}", score_cpu), 12, 12, 32, rl.WHITE)
         rl.DrawText(fmt.ctprintf("{}", score_player), i32(window_size.x) - 28, 12, 32,rl.WHITE)
