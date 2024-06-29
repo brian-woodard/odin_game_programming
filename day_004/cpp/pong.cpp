@@ -58,8 +58,6 @@ int main()
 
    reset(gs);
 
-   printf(">>> ball speed %f\n", gs.ball_speed);
-
    InitWindow(gs.window_size.x, gs.window_size.y, "Pong");
    SetTargetFPS(60);
 
